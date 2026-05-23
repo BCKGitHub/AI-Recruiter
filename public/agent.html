@@ -221,7 +221,7 @@
     setStatus('connecting', 'Connecting to OpenAI Realtime...');
 
     var tokenRes = await fetch(
-      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-4o-realtime-preview-2024-12-17&voice=alloy',
+      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-4o-realtime-preview&voice=alloy',
       { headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Apikey': SUPABASE_ANON_KEY } }
     );
     if (!tokenRes.ok) throw new Error('Token fetch failed: ' + (await tokenRes.text()));
@@ -294,7 +294,7 @@
     await pc.setLocalDescription(offer);
 
     var sdpRes = await fetch(
-      'https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
+      'https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
       {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + ephemeralKey, 'Content-Type': 'application/sdp' },
