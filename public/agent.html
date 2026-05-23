@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280" />
+<title>AI Interviewer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1280px; height: 720px; overflow: hidden;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .card {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 32px;
+    padding: 48px 64px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    backdrop-filter: blur(12px);
+    min-width: 520px;
+  }
+  .avatar-wrap { position: relative; }
+  .pulse-ring {
+    position: absolute; inset: -12px; border-radius: 50%;
+    background: rgba(34,197,94,0.2);
+    animation: pulse 2s ease-in-out infinite;
+    display: none;
+  }
+  .pulse-ring.speaking { background: rgba(59,130,246,0.25); display: block; }
+  .pulse-ring.listening { background: rgba(34,197,94,0.2); display: block; }
+  .pulse-ring.connecting { background: rgba(234,179,8,0.2); display: block; }
+  .avatar {
+    width: 96px; height: 96px; border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    box-shadow: 0 8px 32px rgba(59,130,246,0.4);
+  }
+  .title { text-align: center; }
+  .title h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .title p { font-size: 15px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 20px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #94a3b8; flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .dot.connecting { background: #eab308; animation: blink 1s ease-in-out infinite; }
+  .dot.listening  { background: #22c55e; }
+  .dot.speaking   { background: #3b82f6; animation: blink 0.8s ease-in-out infinite; }
+  .dot.error      { background: #ef4444; }
+  .status-pill span { font-size: 13px; color: rgba(255,255,255,0.7); }
+  .transcript {
+    width: 100%; display: flex; flex-direction: column; gap: 8px;
+    max-height: 180px; overflow: hidden;
+  }
+  .msg { display: flex; gap: 10px; align-items: flex-start; transition: opacity 0.3s; }
+  .msg-role {
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+    margin-top: 1px; min-width: 70px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .msg-role.ai { color: rgba(96,165,250,0.9); }
+  .msg-role.candidate { color: rgba(134,239,172,0.9); }
+  .msg-text {
+    font-size: 13px; color: rgba(255,255,255,0.65);
+    line-height: 1.5; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="card">
+  <div class="avatar-wrap">
+    <div class="pulse-ring" id="pulseRing"></div>
+    <div class="avatar">&#129302;</div>
+  </div>
+  <div class="title">
+    <h1>AI Interviewer</h1>
+    <p id="candidateName">Loading...</p>
+  </div>
+  <div class="status-pill">
+    <div class="dot connecting" id="dot"></div>
+    <span id="statusText">Initializing...</span>
+  </div>
+  <div class="transcript" id="transcript" style="display:none"></div>
+</div>
+
+<script>
+(async function() {
+  var SUPABASE_URL = 'VITE_SUPABASE_URL_PLACEHOLDER';
+  var SUPABASE_ANON_KEY = 'VITE_SUPABASE_ANON_KEY_PLACEHOLDER';
+
+  var params = new URLSearchParams(window.location.search);
+  var INTERVIEW_ID = params.get('interviewId');
+
+  var dotEl = document.getElementById('dot');
+  var statusEl = document.getElementById('statusText');
+  var pulseRing = document.getElementById('pulseRing');
+  var candidateNameEl = document.getElementById('candidateName');
+  var transcriptEl = document.getElementById('transcript');
+  var transcriptMessages = [];
+  var saveTimer = null;
+
+  function setStatus(state, text) {
+    dotEl.className = 'dot ' + state;
+    pulseRing.className = 'pulse-ring ' + state;
+    statusEl.textContent = text;
+  }
+
+  function renderTranscript() {
+    var msgs = transcriptMessages.slice(-3);
+    if (msgs.length === 0) { transcriptEl.style.display = 'none'; return; }
+    transcriptEl.style.display = 'flex';
+    var html = '';
+    for (var i = 0; i < msgs.length; i++) {
+      var m = msgs[i];
+      var opacity = (i === 0 && transcriptMessages.length > 3) ? '0.4'
+                  : (i === 1 && transcriptMessages.length > 3) ? '0.7' : '1';
+      var roleClass = m.role === 'interviewer' ? 'ai' : 'candidate';
+      var roleLabel = m.role === 'interviewer' ? 'AI' : 'Candidate';
+      var safe = m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      html += '<div class="msg" style="opacity:' + opacity + '">'
+            + '<span class="msg-role ' + roleClass + '">' + roleLabel + '</span>'
+            + '<p class="msg-text">' + safe + '</p>'
+            + '</div>';
+    }
+    transcriptEl.innerHTML = html;
+  }
+
+  function appendTranscript(role, content) {
+    transcriptMessages.push({ role: role, content: content, timestamp: new Date().toISOString() });
+    renderTranscript();
+    scheduleSave();
+  }
+
+  function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveTranscript, 1500);
+  }
+
+  function saveTranscript() {
+    fetch(SUPABASE_URL + '/rest/v1/interviews?id=eq.' + INTERVIEW_ID, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ transcript: transcriptMessages }),
+    }).catch(function(e) { console.error('save transcript failed', e); });
+  }
+
+  function buildSystemPrompt(iv) {
+    return 'You are an AI technical interviewer conducting a structured job interview.\n\n'
+      + 'CANDIDATE: ' + iv.candidate_name + '\n'
+      + 'EMAIL: ' + iv.candidate_email + '\n\n'
+      + 'JOB DESCRIPTION:\n' + iv.job_description + '\n\n'
+      + 'CANDIDATE RESUME:\n' + iv.resume + '\n\n'
+      + 'INTERVIEW INSTRUCTIONS:\n'
+      + '- Start by warmly greeting ' + iv.candidate_name + ' and introducing yourself as their AI interviewer\n'
+      + '- Conduct a structured 20-30 minute technical interview covering: relevant technical skills, past experience, problem-solving, and cultural fit\n'
+      + '- Ask one question at a time and wait for the candidate to finish before responding\n'
+      + '- Follow up on interesting answers to dig deeper\n'
+      + '- Be professional, encouraging, and neutral in tone\n'
+      + '- Cover at least 5-7 substantive questions tailored to the job description and resume\n'
+      + '- When complete, thank the candidate and let them know the team will be in touch\n'
+      + '- Do NOT reveal scores, assessments, or internal notes\n'
+      + '- Keep responses concise and conversational — this is spoken, not text chat';
+  }
+
+  try {
+    if (!INTERVIEW_ID) throw new Error('Missing interviewId in URL');
+
+    setStatus('connecting', 'Loading interview data...');
+
+    var ivRes = await fetch(SUPABASE_URL + '/rest/v1/interviews?id=eq.' + INTERVIEW_ID + '&select=*', {
+      headers: {
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY,
+      }
+    });
+    var rows = await ivRes.json();
+    if (!rows.length) throw new Error('Interview not found');
+    var iv = rows[0];
+
+    candidateNameEl.textContent = 'Interviewing ' + iv.candidate_name;
+    if (iv.transcript && iv.transcript.length) {
+      transcriptMessages = iv.transcript;
+      renderTranscript();
+    }
+
+    setStatus('connecting', 'Connecting to OpenAI Realtime...');
+
+    var tokenRes = await fetch(
+      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-4o-realtime-preview-2024-12-17&voice=alloy',
+      { headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Apikey': SUPABASE_ANON_KEY } }
+    );
+    if (!tokenRes.ok) throw new Error('Token fetch failed: ' + (await tokenRes.text()));
+    var tokenData = await tokenRes.json();
+    var ephemeralKey = tokenData.client_secret && tokenData.client_secret.value;
+    if (!ephemeralKey) throw new Error('No ephemeral key in token response');
+
+    var pc = new RTCPeerConnection();
+
+    var audioEl = document.createElement('audio');
+    audioEl.autoplay = true;
+    document.body.appendChild(audioEl);
+    pc.ontrack = function(e) { audioEl.srcObject = e.streams[0]; };
+
+    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    pc.addTrack(stream.getAudioTracks()[0]);
+
+    var dc = pc.createDataChannel('oai-events');
+
+    dc.onopen = function() {
+      setStatus('listening', 'Connected — waiting for ' + iv.candidate_name);
+
+      dc.send(JSON.stringify({
+        type: 'session.update',
+        session: {
+          modalities: ['text', 'audio'],
+          instructions: buildSystemPrompt(iv),
+          voice: 'alloy',
+          input_audio_transcription: { model: 'whisper-1' },
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 700,
+          },
+        },
+      }));
+
+      dc.send(JSON.stringify({
+        type: 'response.create',
+        response: {
+          modalities: ['text', 'audio'],
+          instructions: 'Greet ' + iv.candidate_name + ' warmly, introduce yourself as their AI interviewer, and ask your first interview question based on their resume and the job description. Be concise and conversational.',
+        },
+      }));
+    };
+
+    dc.onmessage = function(e) {
+      try {
+        var ev = JSON.parse(e.data);
+        var type = ev.type;
+        if (type === 'output_audio_buffer.started') {
+          setStatus('speaking', 'AI Interviewer speaking...');
+        }
+        if (type === 'output_audio_buffer.stopped' || type === 'response.audio.done') {
+          setStatus('listening', 'Listening — ' + iv.candidate_name);
+        }
+        if (type === 'response.audio_transcript.done') {
+          var t1 = ev.transcript || '';
+          if (t1.trim()) appendTranscript('interviewer', t1.trim());
+        }
+        if (type === 'conversation.item.input_audio_transcription.completed') {
+          var t2 = ev.transcript || '';
+          if (t2.trim()) appendTranscript('candidate', t2.trim());
+        }
+      } catch(ignored) {}
+    };
+
+    var offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    var sdpRes = await fetch(
+      'https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
+      {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + ephemeralKey, 'Content-Type': 'application/sdp' },
+        body: offer.sdp,
+      }
+    );
+    if (!sdpRes.ok) throw new Error('SDP failed: ' + (await sdpRes.text()));
+    var answerSdp = await sdpRes.text();
+    await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+    setStatus('listening', 'Connected — ' + iv.candidate_name);
+
+  } catch(err) {
+    console.error('Agent error:', err);
+    setStatus('error', String(err));
+  }
+})();
+</script>
+</body>
+</html>
