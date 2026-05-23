@@ -221,13 +221,14 @@
     setStatus('connecting', 'Connecting to OpenAI Realtime...');
 
     var tokenRes = await fetch(
-      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-4o-realtime-preview&voice=alloy',
+      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-realtime-2&voice=alloy',
       { headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Apikey': SUPABASE_ANON_KEY } }
     );
     if (!tokenRes.ok) throw new Error('Token fetch failed: ' + (await tokenRes.text()));
     var tokenData = await tokenRes.json();
-    var ephemeralKey = tokenData.client_secret && tokenData.client_secret.value;
-    if (!ephemeralKey) throw new Error('No ephemeral key in token response');
+    // GA API returns ephemeral key at data.value
+    var ephemeralKey = tokenData.value || (tokenData.client_secret && tokenData.client_secret.value);
+    if (!ephemeralKey) throw new Error('No ephemeral key in token response: ' + JSON.stringify(tokenData));
 
     var pc = new RTCPeerConnection();
 
@@ -294,7 +295,7 @@
     await pc.setLocalDescription(offer);
 
     var sdpRes = await fetch(
-      'https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+      'https://api.openai.com/v1/realtime/calls',
       {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + ephemeralKey, 'Content-Type': 'application/sdp' },

@@ -21,17 +21,25 @@ Deno.serve(async (req: Request) => {
     }
 
     const url = new URL(req.url);
-    const model = url.searchParams.get("model") || "gpt-4o-realtime-preview";
+    const model = url.searchParams.get("model") || "gpt-realtime-2";
     const voice = url.searchParams.get("voice") || "alloy";
 
-    // Request an ephemeral session token from OpenAI
-    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
+    // GA endpoint: POST /v1/realtime/client_secrets
+    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${openaiApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model, voice }),
+      body: JSON.stringify({
+        session: {
+          type: "realtime",
+          model,
+          audio: {
+            output: { voice },
+          },
+        },
+      }),
     });
 
     if (!response.ok) {
