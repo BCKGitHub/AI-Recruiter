@@ -38,6 +38,7 @@ Deno.serve(async (req: Request) => {
           audio: {
             output: { voice },
           },
+          input_audio_transcription: { model: "whisper-1" },
         },
       }),
     });

@@ -316,7 +316,7 @@
           modalities: ['text', 'audio'],
           instructions: buildSystemPrompt(iv),
           voice: 'alloy',
-          input_audio_transcription: { enabled: true },
+          input_audio_transcription: { model: 'whisper-1' },
           turn_detection: {
             type: 'server_vad',
             threshold: 0.5,
@@ -362,6 +362,9 @@
         if (type === 'conversation.item.input_audio_transcription.completed') {
           var t2 = ev.transcript || '';
           if (t2.trim()) appendTranscript('candidate', t2.trim());
+        }
+        if (type === 'conversation.item.input_audio_transcription.failed') {
+          console.error('Candidate transcription failed:', ev.error);
         }
       } catch(ignored) {}
     };
