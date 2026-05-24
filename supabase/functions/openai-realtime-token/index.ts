@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
 
     const url = new URL(req.url);
     const model = url.searchParams.get("model") || "gpt-realtime-2";
-    const voice = url.searchParams.get("voice") || "alloy";
+    const voice = url.searchParams.get("voice") || "marin";
 
     // GA endpoint: POST /v1/realtime/client_secrets
     const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {

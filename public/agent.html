@@ -313,15 +313,20 @@
       dc.send(JSON.stringify({
         type: 'session.update',
         session: {
-          modalities: ['text', 'audio'],
+          type: 'realtime',
           instructions: buildSystemPrompt(iv),
-          voice: 'alloy',
-          input_audio_transcription: { model: 'whisper-1' },
-          turn_detection: {
-            type: 'server_vad',
-            threshold: 0.5,
-            prefix_padding_ms: 300,
-            silence_duration_ms: 700,
+          audio: {
+            input: {
+              transcription: { model: 'whisper-1' },
+              turn_detection: {
+                type: 'server_vad',
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 700,
+                create_response: true,
+                interrupt_response: true,
+              },
+            },
           },
         },
       }));
