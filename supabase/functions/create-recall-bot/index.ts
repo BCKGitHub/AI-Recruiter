@@ -60,9 +60,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Use the Supabase edge function URL directly — guaranteed accessible from
-    // Recall.ai's headless browser and avoids any Netlify redirect rules.
-    const agentUrl = `${supabaseUrl}/functions/v1/agent-page?interviewId=${encodeURIComponent(interviewId)}`;
+    // Derive the agent URL from the request Origin so the Recall.ai bot loads
+    // the Netlify-hosted React app (/agent route) which renders properly in Chrome.
+    const origin = req.headers.get("origin");
+    let agentUrl: string;
+    if (origin && origin !== "null") {
+      agentUrl = `${origin}/agent?interviewId=${encodeURIComponent(interviewId)}`;
+    } else {
+      agentUrl = `${supabaseUrl}/functions/v1/agent-page?interviewId=${encodeURIComponent(interviewId)}`;
+    }
 
     console.log("Creating Recall bot with agent URL:", agentUrl);
 

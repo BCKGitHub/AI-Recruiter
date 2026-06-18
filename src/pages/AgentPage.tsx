@@ -147,9 +147,18 @@ export default function AgentPage() {
           setStatusText(`Listening — ${(data as Interview).candidate_name}`);
         };
 
-        // Local mic → send to OpenAI
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        pc.addTrack(stream.getAudioTracks()[0]);
+        // Local mic → send to OpenAI (Recall.ai auto-grants mic = meeting audio)
+        let audioTrack: MediaStreamTrack;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioTrack = stream.getAudioTracks()[0];
+        } catch {
+          // Headless browser without mic — use silent track so WebRTC still connects
+          const ctx = new AudioContext();
+          const dst = ctx.createMediaStreamDestination();
+          audioTrack = dst.stream.getAudioTracks()[0];
+        }
+        pc.addTrack(audioTrack);
 
         // Data channel for events (transcripts, function calls)
         const dc = pc.createDataChannel("oai-events");
@@ -194,9 +203,22 @@ export default function AgentPage() {
           }
         };
 
-        // 4. Create SDP offer and connect to OpenAI
+        // 4. Create SDP offer, wait for ICE gathering, then connect to OpenAI
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
+
+        // Wait for ICE candidates to be fully gathered before sending SDP
+        await new Promise<void>((resolve) => {
+          if (pc.iceGatheringState === "complete") { resolve(); return; }
+          const onState = () => {
+            if (pc.iceGatheringState === "complete") {
+              pc.removeEventListener("icegatheringstatechange", onState);
+              resolve();
+            }
+          };
+          pc.addEventListener("icegatheringstatechange", onState);
+          setTimeout(resolve, 4000); // max 4s fallback
+        });
 
         const sdpRes = await fetch(
           `https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`,
@@ -206,7 +228,7 @@ export default function AgentPage() {
               Authorization: `Bearer ${ephemeralKey}`,
               "Content-Type": "application/sdp",
             },
-            body: offer.sdp,
+            body: pc.localDescription!.sdp,
           }
         );
         if (!sdpRes.ok) {
