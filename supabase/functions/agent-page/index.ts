@@ -217,10 +217,36 @@ function buildHtml(interviewId: string): string {
 
     pc = new RTCPeerConnection();
 
-    var audioEl = document.createElement('audio');
-    audioEl.autoplay = true;
-    document.body.appendChild(audioEl);
-    pc.ontrack = function(e) { audioEl.srcObject = e.streams[0]; };
+    var remoteAudioCtx = null;
+    pc.ontrack = function(e) {
+      if (!e.streams || !e.streams[0]) return;
+      var remoteStream = e.streams[0];
+
+      // Route via Web Audio API — bypasses Chrome autoplay restrictions in headless mode
+      try {
+        if (!remoteAudioCtx) {
+          remoteAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        remoteAudioCtx.resume().then(function() {
+          var src = remoteAudioCtx.createMediaStreamSource(remoteStream);
+          src.connect(remoteAudioCtx.destination);
+          console.log('Remote audio routed via Web Audio API');
+        });
+      } catch(waErr) {
+        console.warn('Web Audio routing failed:', waErr.message);
+      }
+
+      // Fallback: audio element
+      var audioEl = document.createElement('audio');
+      audioEl.srcObject = remoteStream;
+      audioEl.volume = 1.0;
+      audioEl.muted = false;
+      audioEl.autoplay = true;
+      document.body.appendChild(audioEl);
+      audioEl.play().catch(function(err) {
+        console.warn('Audio element autoplay blocked:', err.message);
+      });
+    };
 
     // Attempt microphone access. In Recall.ai's headless browser the virtual audio
     // device captures meeting audio. If unavailable, fall back to a silent track so
@@ -412,6 +438,8 @@ Deno.serve(async (req: Request) => {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
+      "Content-Disposition": "inline",
+      "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
     },
   });
