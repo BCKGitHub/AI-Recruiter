@@ -314,14 +314,28 @@ function buildHtml(interviewId: string): string {
     var offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    // gpt-4o-realtime-preview SDP endpoint
+    // Wait for ICE gathering to complete before sending SDP
+    await new Promise(function(resolve) {
+      if (pc.iceGatheringState === 'complete') { resolve(); return; }
+      function onStateChange() {
+        if (pc.iceGatheringState === 'complete') {
+          pc.removeEventListener('icegatheringstatechange', onStateChange);
+          resolve();
+        }
+      }
+      pc.addEventListener('icegatheringstatechange', onStateChange);
+      // Fallback: don't wait more than 4 seconds
+      setTimeout(resolve, 4000);
+    });
+
+    // gpt-4o-realtime-preview SDP endpoint — use localDescription.sdp (includes ICE candidates)
     var sdpRes = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + ephemeralKey,
         'Content-Type': 'application/sdp',
       },
-      body: offer.sdp,
+      body: pc.localDescription.sdp,
     });
     if (!sdpRes.ok) {
       var sdpErr = await sdpRes.text();
