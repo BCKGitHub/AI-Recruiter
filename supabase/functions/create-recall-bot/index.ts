@@ -60,15 +60,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Use /agent.html explicitly so Netlify serves the static file directly,
-    // bypassing the /* → /index.html SPA redirect in _redirects.
-    const origin = req.headers.get("origin");
-    let agentUrl: string;
-    if (origin && origin !== "null") {
-      agentUrl = `${origin}/agent.html?interviewId=${encodeURIComponent(interviewId)}`;
-    } else {
-      agentUrl = `${supabaseUrl}/functions/v1/agent-page?interviewId=${encodeURIComponent(interviewId)}`;
-    }
+    const agentUrl = `${supabaseUrl}/functions/v1/agent-page?interviewId=${encodeURIComponent(interviewId)}`;
 
     console.log("Creating Recall bot with agent URL:", agentUrl);
 
