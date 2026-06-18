@@ -32,14 +32,27 @@ const BOT_STATUS_CONFIG: Record<BotStatus, { label: string; color: string; icon:
 };
 
 function parseBotStatus(data: Record<string, unknown>): { status: BotStatus; subCode: string } {
+  // Map Recall.ai status codes to our internal BotStatus
+  const codeMap: Record<string, BotStatus> = {
+    joining_call:    "joining_call",
+    in_waiting_room: "waiting_for_host",
+    in_call:         "in_call",
+    call_ended:      "call_ended",
+    fatal:           "fatal",
+    error:           "error",
+  };
+
   const changes = data.status_changes as { code: string; sub_code?: string }[] | undefined;
   if (changes && changes.length > 0) {
     const latest = changes[changes.length - 1];
-    const status = (latest.code in BOT_STATUS_CONFIG ? latest.code : "unknown") as BotStatus;
-    return { status, subCode: latest.sub_code ?? "" };
+    const mapped = codeMap[latest.code] ?? "unknown";
+    return { status: mapped, subCode: latest.sub_code ?? "" };
   }
-  const status = data.status as string | undefined;
-  if (status && status in BOT_STATUS_CONFIG) return { status: status as BotStatus, subCode: "" };
+  const rawStatus = data.status as string | undefined;
+  if (rawStatus) {
+    const mapped = codeMap[rawStatus] ?? "unknown";
+    return { status: mapped, subCode: "" };
+  }
   return { status: "unknown", subCode: "" };
 }
 
@@ -84,10 +97,9 @@ export default function SetupInterview({ onInterviewCreated }: Props) {
     pollRef.current = setInterval(async () => {
       pollCountRef.current += 1;
 
-      // Stop after ~45 seconds (15 polls × 3s)
-      if (pollCountRef.current > 15) {
+      // Allow up to 3 minutes (60 polls × 3s) — extra time for waiting room admits
+      if (pollCountRef.current > 60) {
         stopPolling();
-        // Bot never responded — mark as Failed
         await supabase.from("interviews").update({ status: "Failed" }).eq("id", ivId);
         setBotStatus("fatal");
         return;
@@ -125,6 +137,7 @@ export default function SetupInterview({ onInterviewCreated }: Props) {
         } else if (status === "call_ended") {
           stopPolling();
         }
+        // "waiting_for_host" keeps polling — user needs to admit the bot
       } catch {
         // silently retry
       }
