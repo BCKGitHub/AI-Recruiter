@@ -34,7 +34,6 @@
   .avatar-wrap { position: relative; }
   .pulse-ring {
     position: absolute; inset: -12px; border-radius: 50%;
-    background: rgba(34,197,94,0.2);
     animation: pulse 2s ease-in-out infinite;
     display: none;
   }
@@ -57,6 +56,7 @@
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 100px;
+    max-width: 480px;
   }
   .dot {
     width: 8px; height: 8px; border-radius: 50%;
@@ -68,29 +68,9 @@
   .dot.speaking   { background: #3b82f6; animation: blink 0.8s ease-in-out infinite; }
   .dot.error      { background: #ef4444; }
   .dot.ended      { background: #94a3b8; }
-  .status-pill span { font-size: 13px; color: rgba(255,255,255,0.7); }
-  .end-btn {
-    display: flex; align-items: center; gap: 8px;
-    padding: 12px 28px;
-    background: #dc2626;
-    border: none;
-    border-radius: 100px;
-    color: #fff;
-    font-size: 14px; font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-    letter-spacing: 0.3px;
-    box-shadow: 0 4px 16px rgba(220,38,38,0.45);
-    pointer-events: all;
-    position: relative;
-    z-index: 10;
-  }
-  .end-btn:hover { background: #b91c1c; box-shadow: 0 6px 20px rgba(220,38,38,0.6); transform: scale(1.04); }
-  .end-btn:active { transform: scale(0.97); }
-  .end-btn.hidden { display: none; }
-  .shortcut-hint {
-    font-size: 11px; color: rgba(255,255,255,0.35);
-    letter-spacing: 0.3px;
+  .status-pill span {
+    font-size: 13px; color: rgba(255,255,255,0.7);
+    word-break: break-word; white-space: normal;
   }
   .transcript {
     width: 100%; display: flex; flex-direction: column; gap: 8px;
@@ -135,16 +115,6 @@
     <span id="statusText">Initializing...</span>
   </div>
   <div class="transcript" id="transcript" style="display:none"></div>
-  <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
-    <button class="end-btn hidden" id="endBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.43 9.88a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.31 8.9"/>
-        <line x1="23" y1="1" x2="1" y2="23"/>
-      </svg>
-      End Interview
-    </button>
-    <span class="shortcut-hint hidden" id="shortcutHint">or press E</span>
-  </div>
 </div>
 
 <script>
@@ -160,12 +130,9 @@
   var pulseRing = document.getElementById('pulseRing');
   var candidateNameEl = document.getElementById('candidateName');
   var transcriptEl = document.getElementById('transcript');
-  var endBtn = document.getElementById('endBtn');
-  var shortcutHint = document.getElementById('shortcutHint');
   var transcriptMessages = [];
   var saveTimer = null;
   var pc = null;
-  var interviewEnded = false;
 
   function setStatus(state, text) {
     dotEl.className = 'dot ' + state;
@@ -218,30 +185,6 @@
     }).catch(function(e) { console.error('save transcript failed', e); });
   }
 
-  function endInterview() {
-    if (interviewEnded) return;
-    interviewEnded = true;
-    endBtn.classList.add('hidden');
-    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-    fetch(SUPABASE_URL + '/rest/v1/interviews?id=eq.' + INTERVIEW_ID, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'apikey': SUPABASE_ANON_KEY,
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({ status: 'Completed', transcript: transcriptMessages }),
-    }).catch(function(e) { console.error('status update failed', e); });
-    if (pc) { pc.close(); pc = null; }
-    setStatus('ended', 'Interview complete — thank you!');
-  }
-
-  endBtn.addEventListener('click', endInterview);
-  document.addEventListener('keydown', function(e) {
-    if ((e.key === 'e' || e.key === 'E') && !interviewEnded) endInterview();
-  });
-
   function buildSystemPrompt(iv) {
     return 'You are an AI technical interviewer conducting a structured job interview.\n\n'
       + 'CANDIDATE: ' + iv.candidate_name + '\n'
@@ -271,6 +214,7 @@
         'apikey': SUPABASE_ANON_KEY,
       }
     });
+    if (!ivRes.ok) throw new Error('Failed to load interview: ' + ivRes.status);
     var rows = await ivRes.json();
     if (!rows.length) throw new Error('Interview not found');
     var iv = rows[0];
@@ -281,61 +225,67 @@
       renderTranscript();
     }
 
-    setStatus('connecting', 'Connecting to OpenAI Realtime...');
+    setStatus('connecting', 'Connecting to AI...');
 
+    // Get ephemeral token — model MUST match gpt-4o-realtime-preview
     var tokenRes = await fetch(
-      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-realtime-2&voice=alloy',
+      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-4o-realtime-preview&voice=alloy',
       { headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Apikey': SUPABASE_ANON_KEY } }
     );
-    if (!tokenRes.ok) throw new Error('Token fetch failed: ' + (await tokenRes.text()));
+    if (!tokenRes.ok) throw new Error('Token fetch failed (' + tokenRes.status + '): ' + (await tokenRes.text()));
     var tokenData = await tokenRes.json();
-    // GA API returns ephemeral key at data.value
-    var ephemeralKey = tokenData.value || (tokenData.client_secret && tokenData.client_secret.value);
-    if (!ephemeralKey) throw new Error('No ephemeral key in token response: ' + JSON.stringify(tokenData));
+    var ephemeralKey = tokenData.client_secret && tokenData.client_secret.value;
+    if (!ephemeralKey) throw new Error('No ephemeral key. Response: ' + JSON.stringify(tokenData));
 
     pc = new RTCPeerConnection();
 
+    // OpenAI audio → play via <audio> → Recall.ai captures and sends to Zoom
     var audioEl = document.createElement('audio');
     audioEl.autoplay = true;
     document.body.appendChild(audioEl);
     pc.ontrack = function(e) { audioEl.srcObject = e.streams[0]; };
 
-    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    pc.addTrack(stream.getAudioTracks()[0]);
+    // Meeting audio from Recall.ai's virtual mic → send to OpenAI
+    var audioTrack;
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioTrack = stream.getAudioTracks()[0];
+    } catch (micErr) {
+      console.warn('getUserMedia failed, using silent fallback:', micErr.message);
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var dst = ctx.createMediaStreamDestination();
+      audioTrack = dst.stream.getAudioTracks()[0];
+    }
+    pc.addTrack(audioTrack);
 
     var dc = pc.createDataChannel('oai-events');
 
     dc.onopen = function() {
       setStatus('listening', 'Connected — waiting for ' + iv.candidate_name);
-      endBtn.classList.remove('hidden');
-      shortcutHint.classList.remove('hidden');
 
+      // Correct flat session.update format for gpt-4o-realtime-preview
       dc.send(JSON.stringify({
         type: 'session.update',
         session: {
-          type: 'realtime',
+          modalities: ['text', 'audio'],
           instructions: buildSystemPrompt(iv),
-          audio: {
-            input: {
-              transcription: { model: 'whisper-1' },
-              turn_detection: {
-                type: 'server_vad',
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 700,
-                create_response: true,
-                interrupt_response: true,
-              },
-            },
+          voice: 'alloy',
+          input_audio_transcription: { model: 'whisper-1' },
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 700,
           },
         },
       }));
 
+      // Trigger initial greeting
       dc.send(JSON.stringify({
         type: 'response.create',
         response: {
           modalities: ['text', 'audio'],
-          instructions: 'Greet ' + iv.candidate_name + ' warmly, introduce yourself as their AI interviewer, and ask your first interview question based on their resume and the job description. Be concise and conversational.',
+          instructions: 'Greet ' + iv.candidate_name + ' warmly by name, introduce yourself as their AI interviewer, and ask your first interview question based on their resume and the job description. Be concise and conversational.',
         },
       }));
     };
@@ -344,52 +294,58 @@
       try {
         var ev = JSON.parse(e.data);
         var type = ev.type;
-        if (type === 'output_audio_buffer.started' || type === 'response.audio.delta') {
+        if (type === 'output_audio_buffer.started') {
           setStatus('speaking', 'AI Interviewer speaking...');
         }
         if (type === 'output_audio_buffer.stopped' || type === 'response.audio.done' || type === 'response.done') {
-          if (!interviewEnded) setStatus('listening', 'Listening — ' + iv.candidate_name);
+          setStatus('listening', 'Listening — ' + iv.candidate_name);
         }
-        // GA: full AI transcript comes in response.done output items
-        if (type === 'response.done') {
-          var output = ev.response && ev.response.output;
-          if (output && output.length > 0) {
-            var item = output[0];
-            var parts = item.content;
-            if (parts && parts.length > 0) {
-              for (var i = 0; i < parts.length; i++) {
-                var t1 = parts[i].transcript || parts[i].text || '';
-                if (t1.trim()) { appendTranscript('interviewer', t1.trim()); break; }
-              }
-            }
-          }
+        if (type === 'response.audio_transcript.done') {
+          var t1 = ev.transcript || '';
+          if (t1.trim()) appendTranscript('interviewer', t1.trim());
         }
         if (type === 'conversation.item.input_audio_transcription.completed') {
           var t2 = ev.transcript || '';
           if (t2.trim()) appendTranscript('candidate', t2.trim());
         }
-        if (type === 'conversation.item.input_audio_transcription.failed') {
-          console.error('Candidate transcription failed:', ev.error);
+        if (type === 'error') {
+          console.error('Realtime API error:', JSON.stringify(ev));
+          setStatus('error', 'API error: ' + (ev.error && ev.error.message || JSON.stringify(ev)));
         }
       } catch(ignored) {}
     };
 
+    // Create offer, wait for ICE gathering, then send to OpenAI
     var offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
+    await new Promise(function(resolve) {
+      if (pc.iceGatheringState === 'complete') { resolve(); return; }
+      function onState() {
+        if (pc.iceGatheringState === 'complete') {
+          pc.removeEventListener('icegatheringstatechange', onState);
+          resolve();
+        }
+      }
+      pc.addEventListener('icegatheringstatechange', onState);
+      setTimeout(resolve, 4000); // max 4s fallback
+    });
+
+    // Correct SDP endpoint for gpt-4o-realtime-preview
     var sdpRes = await fetch(
-      'https://api.openai.com/v1/realtime/calls',
+      'https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
       {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + ephemeralKey, 'Content-Type': 'application/sdp' },
-        body: offer.sdp,
+        body: pc.localDescription.sdp,
       }
     );
-    if (!sdpRes.ok) throw new Error('SDP failed: ' + (await sdpRes.text()));
+    if (!sdpRes.ok) {
+      var sdpErr = await sdpRes.text();
+      throw new Error('SDP failed (' + sdpRes.status + '): ' + sdpErr);
+    }
     var answerSdp = await sdpRes.text();
     await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
-
-    setStatus('listening', 'Connected — ' + iv.candidate_name);
 
   } catch(err) {
     console.error('Agent error:', err);
