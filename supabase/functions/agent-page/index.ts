@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -434,12 +435,39 @@ Deno.serve(async (req: Request) => {
   }
 
   const html = buildHtml(interviewId);
+
+  // Upload to Supabase Storage so Recall.ai's Chrome receives it with
+  // correct Content-Type (Storage preserves it; Edge Function gateway does not).
+  try {
+    const adminClient = createClient(
+      SUPABASE_URL,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const htmlBytes = new TextEncoder().encode(html);
+    const { error: uploadError } = await adminClient.storage
+      .from("agent-pages")
+      .upload(`${interviewId}.html`, htmlBytes, {
+        contentType: "text/html; charset=utf-8",
+        upsert: true,
+        cacheControl: "0",
+      });
+
+    if (!uploadError) {
+      const storageUrl =
+        `${SUPABASE_URL}/storage/v1/object/public/agent-pages/${encodeURIComponent(interviewId)}.html`;
+      return Response.redirect(storageUrl, 302);
+    }
+    console.error("Storage upload error:", uploadError.message);
+  } catch (err) {
+    console.error("Storage error:", err);
+  }
+
+  // Fallback if Storage is unavailable
   return new Response(html, {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Content-Disposition": "inline",
-      "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
     },
   });
