@@ -31,17 +31,16 @@ const BOT_STATUS_CONFIG: Record<BotStatus, { label: string; color: string; icon:
   unknown:          { label: "Checking status...",      color: "text-gray-500",   icon: <Loader2Icon size={14} className="animate-spin" />, detail: "" },
 };
 
-function parseBotStatus(data: Record<string, unknown>): BotStatus {
-  // status_changes is an array of { code, created_at }
-  const changes = data.status_changes as { code: string }[] | undefined;
+function parseBotStatus(data: Record<string, unknown>): { status: BotStatus; subCode: string } {
+  const changes = data.status_changes as { code: string; sub_code?: string }[] | undefined;
   if (changes && changes.length > 0) {
-    const latest = changes[changes.length - 1].code as BotStatus;
-    if (latest in BOT_STATUS_CONFIG) return latest;
+    const latest = changes[changes.length - 1];
+    const status = (latest.code in BOT_STATUS_CONFIG ? latest.code : "unknown") as BotStatus;
+    return { status, subCode: latest.sub_code ?? "" };
   }
-  // fallback: top-level status field
   const status = data.status as string | undefined;
-  if (status && status in BOT_STATUS_CONFIG) return status as BotStatus;
-  return "unknown";
+  if (status && status in BOT_STATUS_CONFIG) return { status: status as BotStatus, subCode: "" };
+  return { status: "unknown", subCode: "" };
 }
 
 export default function SetupInterview({ onInterviewCreated }: Props) {
@@ -58,6 +57,7 @@ export default function SetupInterview({ onInterviewCreated }: Props) {
   const [interviewId, setInterviewId] = useState<string | null>(null);
   const [botStatus, setBotStatus] = useState<BotStatus | null>(null);
   const [botRawStatus, setBotRawStatus] = useState<string>("");
+  const [botSubCode, setBotSubCode] = useState<string>("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCountRef = useRef(0);
 
@@ -105,15 +105,17 @@ export default function SetupInterview({ onInterviewCreated }: Props) {
         );
         if (!res.ok) return;
         const data = await res.json() as Record<string, unknown>;
-        const status = parseBotStatus(data);
+        const { status, subCode } = parseBotStatus(data);
         setBotStatus(status);
+        if (subCode) setBotSubCode(subCode);
 
-        const changes = data.status_changes as { code: string }[] | undefined;
+        const changes = data.status_changes as { code: string; sub_code?: string }[] | undefined;
         if (changes && changes.length > 0) {
-          setBotRawStatus(changes.map((c) => c.code).join(" → "));
+          setBotRawStatus(
+            changes.map((c) => (c.sub_code ? `${c.code}(${c.sub_code})` : c.code)).join(" → ")
+          );
         }
 
-        // Write confirmed terminal states back to the database
         if (status === "in_call") {
           await supabase.from("interviews").update({ status: "In Progress" }).eq("id", ivId);
           stopPolling();
@@ -141,6 +143,7 @@ export default function SetupInterview({ onInterviewCreated }: Props) {
     setInterviewId(null);
     setBotStatus(null);
     setBotRawStatus("");
+    setBotSubCode("");
     stopPolling();
 
     try {
@@ -370,13 +373,17 @@ export default function SetupInterview({ onInterviewCreated }: Props) {
                 )}
 
                 {botStatus === "fatal" && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 space-y-1">
-                    <p className="font-semibold">Possible causes:</p>
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 space-y-1.5">
+                    {botSubCode && (
+                      <p className="font-semibold font-mono">
+                        Recall error: <span className="underline">{botSubCode}</span>
+                      </p>
+                    )}
+                    <p className="font-semibold">Common causes:</p>
                     <ul className="list-disc ml-4 space-y-0.5">
-                      <li>Recall.ai account has insufficient credits — check your dashboard at recall.ai</li>
+                      <li><strong>Zoom app not connected</strong> — in your Recall.ai dashboard go to <em>Settings &gt; Integrations &gt; Zoom</em> and install the Recall Zoom App. This is required to join meetings.</li>
                       <li>The Zoom meeting ended before the bot could join</li>
-                      <li>The Zoom URL format is not recognised — use <code>zoom.us/j/ID?pwd=...</code></li>
-                      <li>Zoom waiting room is enabled — admit the bot from the participant panel</li>
+                      <li>Waiting room enabled — admit the bot named <em>AI Interviewer</em> from the Zoom participants panel</li>
                     </ul>
                   </div>
                 )}
