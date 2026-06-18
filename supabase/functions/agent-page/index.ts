@@ -201,9 +201,9 @@ function buildHtml(interviewId: string): string {
 
     setStatus('connecting', 'Connecting to AI...');
 
-    // Fetch ephemeral key — gpt-realtime-2 (GA API)
+    // Fetch ephemeral key — gpt-4o-realtime-preview
     var tokenRes = await fetch(
-      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-realtime-2&voice=marin',
+      SUPABASE_URL + '/functions/v1/openai-realtime-token?model=gpt-4o-realtime-preview&voice=alloy',
       { headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Apikey': SUPABASE_ANON_KEY } }
     );
     if (!tokenRes.ok) {
@@ -211,8 +211,8 @@ function buildHtml(interviewId: string): string {
       throw new Error('Token fetch failed (' + tokenRes.status + '): ' + errText);
     }
     var tokenData = await tokenRes.json();
-    // GA API returns ephemeral key at top-level .value
-    var ephemeralKey = tokenData.value || (tokenData.client_secret && tokenData.client_secret.value);
+    // /v1/realtime/sessions returns { client_secret: { value: "eph-..." } }
+    var ephemeralKey = tokenData.client_secret && tokenData.client_secret.value;
     if (!ephemeralKey) throw new Error('No ephemeral key in response: ' + JSON.stringify(tokenData));
 
     pc = new RTCPeerConnection();
@@ -244,27 +244,20 @@ function buildHtml(interviewId: string): string {
     dc.onopen = function() {
       setStatus('listening', 'Connected — waiting for ' + iv.candidate_name);
 
-      // gpt-realtime-2 session config (nested audio: key)
+      // gpt-4o-realtime-preview uses flat session schema
       dc.send(JSON.stringify({
         type: 'session.update',
         session: {
-          type: 'realtime',
+          modalities: ['text', 'audio'],
           instructions: buildSystemPrompt(iv),
-          audio: {
-            input: {
-              transcription: { model: 'whisper-1' },
-              turn_detection: {
-                type: 'server_vad',
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 700,
-                create_response: true,
-                interrupt_response: true,
-              },
-            },
-            output: {
-              voice: 'marin',
-            },
+          voice: 'alloy',
+          input_audio_transcription: { model: 'whisper-1' },
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 700,
+            create_response: true,
           },
         },
       }));
@@ -321,8 +314,8 @@ function buildHtml(interviewId: string): string {
     var offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    // gpt-realtime-2 SDP endpoint (GA API)
-    var sdpRes = await fetch('https://api.openai.com/v1/realtime/calls', {
+    // gpt-4o-realtime-preview SDP endpoint
+    var sdpRes = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + ephemeralKey,
