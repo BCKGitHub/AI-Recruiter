@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RecruiterAI — Project Documentation</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 15px;
+    line-height: 1.75;
+    color: #1a1a2e;
+    background: #ffffff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 48px;
+  }
+
+  /* ── Print settings ── */
+  @media print {
+    body { max-width: 100%; padding: 0; margin: 0; }
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    h1, h2, h3 { page-break-after: avoid; }
+    pre, .card, .callout { page-break-inside: avoid; }
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: 36px; font-weight: 800; font-family: 'Arial', sans-serif; color: #0f172a; letter-spacing: -1px; margin-bottom: 8px; }
+  h2 { font-size: 24px; font-weight: 700; font-family: 'Arial', sans-serif; color: #0f172a; margin: 48px 0 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+  h3 { font-size: 18px; font-weight: 700; font-family: 'Arial', sans-serif; color: #1e40af; margin: 28px 0 10px; }
+  h4 { font-size: 15px; font-weight: 700; font-family: 'Arial', sans-serif; color: #374151; margin: 20px 0 6px; }
+  p { margin-bottom: 14px; color: #334155; }
+  a { color: #2563eb; }
+  ul, ol { margin: 8px 0 16px 24px; }
+  li { margin-bottom: 6px; color: #334155; }
+  strong { color: #0f172a; }
+
+  /* ── Cover Page ── */
+  .cover {
+    text-align: center;
+    padding: 60px 0 40px;
+    border-bottom: 3px solid #2563eb;
+    margin-bottom: 48px;
+  }
+  .cover .logo {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 36px; margin-bottom: 20px;
+  }
+  .cover .subtitle { font-size: 17px; color: #64748b; margin-top: 8px; font-family: 'Arial', sans-serif; }
+  .cover .meta { margin-top: 24px; font-size: 13px; color: #94a3b8; font-family: 'Arial', sans-serif; }
+
+  /* ── Print button ── */
+  .print-btn {
+    position: fixed; top: 24px; right: 24px;
+    background: #2563eb; color: #fff;
+    border: none; border-radius: 10px;
+    padding: 12px 24px; font-size: 14px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+    font-family: 'Arial', sans-serif;
+    transition: background 0.15s;
+    z-index: 100;
+  }
+  .print-btn:hover { background: #1d4ed8; }
+
+  /* ── Cards & Callouts ── */
+  .card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .card.blue { background: #eff6ff; border-color: #bfdbfe; }
+  .card.green { background: #f0fdf4; border-color: #bbf7d0; }
+  .card.amber { background: #fffbeb; border-color: #fde68a; }
+  .card.purple { background: #faf5ff; border-color: #ddd6fe; }
+
+  .callout {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    padding: 14px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #1e40af;
+  }
+  .callout.tip { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+  .callout.warn { border-color: #d97706; background: #fffbeb; color: #92400e; }
+
+  /* ── Code blocks ── */
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 22px;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 14px 0;
+    font-family: 'Courier New', 'Consolas', monospace;
+  }
+  code {
+    background: #f1f5f9;
+    color: #be123c;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'Courier New', 'Consolas', monospace;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th { background: #1e40af; color: #fff; text-align: left; padding: 10px 14px; font-family: 'Arial', sans-serif; }
+  td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* ── Architecture diagram ── */
+  .arch {
+    background: #0f172a;
+    color: #94a3b8;
+    border-radius: 12px;
+    padding: 28px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    margin: 16px 0;
+  }
+  .arch .box { color: #60a5fa; }
+  .arch .arrow { color: #f59e0b; }
+  .arch .label { color: #34d399; }
+
+  /* ── Flow steps ── */
+  .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+  .flow-step {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+  .flow-step .num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #2563eb; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; shrink: 0;
+    flex-shrink: 0;
+    font-family: 'Arial', sans-serif;
+  }
+  .flow-step .content { flex: 1; }
+  .flow-step .content strong { display: block; font-family: 'Arial', sans-serif; color: #0f172a; }
+  .flow-step .content span { font-size: 13px; color: #64748b; }
+  .flow-connector { width: 2px; height: 12px; background: #cbd5e1; margin-left: 31px; }
+
+  /* ── Section numbers ── */
+  .section-num {
+    display: inline-block;
+    background: #2563eb; color: #fff;
+    border-radius: 6px; padding: 2px 10px;
+    font-size: 12px; font-weight: 700;
+    font-family: 'Arial', sans-serif;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 100px;
+    font-size: 11px; font-weight: 700;
+    font-family: 'Arial', sans-serif;
+    vertical-align: middle;
+  }
+  .badge.react { background: #dbeafe; color: #1d4ed8; }
+  .badge.ts { background: #ede9fe; color: #6d28d9; }
+  .badge.supabase { background: #d1fae5; color: #065f46; }
+  .badge.deno { background: #fef3c7; color: #92400e; }
+  .badge.ai { background: #fce7f3; color: #9d174d; }
+
+  /* ── TOC ── */
+  .toc { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px 28px; margin: 24px 0; }
+  .toc h3 { margin-top: 0; color: #0f172a; }
+  .toc ol { margin-left: 20px; }
+  .toc li { margin-bottom: 8px; font-family: 'Arial', sans-serif; font-size: 14px; }
+  .toc li a { text-decoration: none; color: #2563eb; }
+  .toc li a:hover { text-decoration: underline; }
+  .toc .sub { margin-left: 20px; margin-top: 4px; }
+  .toc .sub li { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 32px 0; }
+</style>
+</head>
+<body>
+
+<!-- Print Button -->
+<button class="print-btn no-print" onclick="window.print()">Download / Print as PDF</button>
+
+<!-- ═══════════════════════════ COVER PAGE ═══════════════════════════ -->
+<div class="cover">
+  <div class="logo">💼</div>
+  <h1>RecruiterAI</h1>
+  <div class="subtitle">Complete Project Documentation</div>
+  <p style="margin-top:16px; color:#475569; max-width:540px; margin-left:auto; margin-right:auto; font-family:'Arial',sans-serif; font-size:15px;">
+    An AI-powered recruitment platform that conducts automated voice interviews, captures real-time transcripts, and generates intelligent candidate assessments.
+  </p>
+  <div class="meta">
+    Version 1.0 &nbsp;·&nbsp; June 2026 &nbsp;·&nbsp; Built with React, Supabase, OpenAI &amp; Claude AI
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TABLE OF CONTENTS ═══════════════════════════ -->
+<div class="toc">
+  <h3>📋 Table of Contents</h3>
+  <ol>
+    <li><a href="#section-1">What This App Does — The Big Picture</a></li>
+    <li><a href="#section-2">Technologies Used (Plain English Explanations)</a></li>
+    <li><a href="#section-3">Architecture — How All the Pieces Connect</a></li>
+    <li><a href="#section-4">The Database — Where Data is Stored</a></li>
+    <li><a href="#section-5">Frontend Pages &amp; Components</a>
+      <ol class="sub">
+        <li><a href="#section-5a">App.tsx — The Main Shell</a></li>
+        <li><a href="#section-5b">SetupInterview — Create a New Interview</a></li>
+        <li><a href="#section-5c">ActiveInterviews — View All Interviews</a></li>
+        <li><a href="#section-5d">TranscriptAssessment — Review &amp; Assess</a></li>
+        <li><a href="#section-5e">AgentPage — The AI Interviewer Screen</a></li>
+      </ol>
+    </li>
+    <li><a href="#section-6">Backend Edge Functions</a>
+      <ol class="sub">
+        <li><a href="#section-6a">openai-realtime-token — Get AI Voice Access</a></li>
+        <li><a href="#section-6b">create-recall-bot — Send a Bot to the Meeting</a></li>
+        <li><a href="#section-6c">generate-assessment — AI Scoring</a></li>
+        <li><a href="#section-6d">recall-transcript-webhook — Receive Transcripts</a></li>
+      </ol>
+    </li>
+    <li><a href="#section-7">The AI Voice Interview — Step by Step</a></li>
+    <li><a href="#section-8">Deployment &amp; Configuration</a></li>
+    <li><a href="#section-9">Key Bugs Fixed During Development</a></li>
+    <li><a href="#section-10">Glossary for Non-Technical Readers</a></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════ SECTION 1 ═══════════════════════════ -->
+<h2 id="section-1"><span class="section-num">1</span> What This App Does — The Big Picture</h2>
+
+<p>
+  RecruiterAI is a web application designed to help recruiters and hiring managers run AI-powered job interviews automatically. Instead of a human interviewer having to spend time in every initial screening call, <strong>an AI voice agent</strong> joins the video meeting, asks smart questions, listens to the candidate's answers, and records everything. Afterwards, another AI reads the transcript and produces a structured scorecard for the recruiter to review.
+</p>
+
+<div class="card blue">
+  <h4>🎯 The Core Workflow in Plain English</h4>
+  <ol>
+    <li>A recruiter fills in a form with the candidate's name, email, Zoom link, job description, and resume.</li>
+    <li>The app saves this information and dispatches a "bot" into the Zoom meeting.</li>
+    <li>The bot displays an animated AI Interviewer screen and conducts a real voice conversation with the candidate.</li>
+    <li>Everything said is transcribed and saved in real time.</li>
+    <li>After the call, the recruiter clicks "Generate Assessment" and receives an AI-written scorecard with scores out of 10 and a hiring recommendation.</li>
+  </ol>
+</div>
+
+<p>Think of it like this: the recruiter sets up the interview in 2 minutes, goes about their day, and comes back to a complete report about the candidate. No human interviewer needed for the screening round.</p>
+
+<!-- ═══════════════════════════ SECTION 2 ═══════════════════════════ -->
+<h2 id="section-2"><span class="section-num">2</span> Technologies Used (Plain English Explanations)</h2>
+
+<p>Below is every piece of technology used and a beginner-friendly explanation of what each one does.</p>
+
+<table>
+  <tr>
+    <th>Technology</th>
+    <th>What it is</th>
+    <th>What it does in this app</th>
+  </tr>
+  <tr>
+    <td><strong>React</strong> <span class="badge react">Frontend</span></td>
+    <td>A JavaScript library for building interactive web pages</td>
+    <td>Powers all the screens the recruiter sees — the form, the interview list, the scorecard</td>
+  </tr>
+  <tr>
+    <td><strong>TypeScript</strong> <span class="badge ts">Language</span></td>
+    <td>JavaScript with type safety — catches errors before the code runs</td>
+    <td>Used for all frontend code to prevent bugs</td>
+  </tr>
+  <tr>
+    <td><strong>Tailwind CSS</strong> <span class="badge react">Styling</span></td>
+    <td>A utility-first CSS framework — style elements with short class names</td>
+    <td>All visual design: colors, spacing, layout, typography</td>
+  </tr>
+  <tr>
+    <td><strong>Vite</strong></td>
+    <td>A fast build tool that packages the code for production</td>
+    <td>Compiles and bundles the React app into files browsers can run</td>
+  </tr>
+  <tr>
+    <td><strong>Supabase</strong> <span class="badge supabase">Backend</span></td>
+    <td>A cloud database service — like Google Sheets but for code</td>
+    <td>Stores all interview data (names, transcripts, assessments) in a PostgreSQL database</td>
+  </tr>
+  <tr>
+    <td><strong>Supabase Edge Functions</strong> <span class="badge deno">Backend</span></td>
+    <td>Small server programs that run in the cloud</td>
+    <td>Handle secure tasks: fetching API keys, calling Recall.ai, calling Claude AI</td>
+  </tr>
+  <tr>
+    <td><strong>Deno</strong> <span class="badge deno">Runtime</span></td>
+    <td>The environment that runs Edge Functions (like Node.js but newer)</td>
+    <td>Executes the server-side TypeScript code securely</td>
+  </tr>
+  <tr>
+    <td><strong>OpenAI Realtime API</strong> <span class="badge ai">AI Voice</span></td>
+    <td>An API that enables real-time speech-to-speech AI conversations</td>
+    <td>Powers the AI voice interviewer — it listens to the candidate and speaks back in real time</td>
+  </tr>
+  <tr>
+    <td><strong>WebRTC</strong></td>
+    <td>A browser standard for real-time audio/video communication</td>
+    <td>Creates the live voice connection between the browser and OpenAI's servers</td>
+  </tr>
+  <tr>
+    <td><strong>Recall.ai</strong></td>
+    <td>A service that can send a virtual bot into video meetings</td>
+    <td>Joins the Zoom/Meet/Teams call, displays the AI interviewer screen, and transmits audio</td>
+  </tr>
+  <tr>
+    <td><strong>Claude AI (Anthropic)</strong> <span class="badge ai">AI Assessment</span></td>
+    <td>A large language model — an AI that understands and generates text</td>
+    <td>Reads the interview transcript and writes the candidate assessment scorecard</td>
+  </tr>
+  <tr>
+    <td><strong>Netlify</strong></td>
+    <td>A web hosting service — puts websites on the internet</td>
+    <td>Hosts the public-facing website so recruiters can access it from any browser</td>
+  </tr>
+</table>
+
+<!-- ═══════════════════════════ SECTION 3 ═══════════════════════════ -->
+<h2 id="section-3"><span class="section-num">3</span> Architecture — How All the Pieces Connect</h2>
+
+<p>
+  The system is made up of three main zones: the <strong>frontend</strong> (what users see in their browser), the <strong>backend</strong> (cloud functions that do the heavy lifting securely), and <strong>external services</strong> (third-party APIs like OpenAI, Recall.ai, and Claude). Here is a diagram of how they connect:
+</p>
+
+<div class="arch">
+<span class="label">RECRUITER'S BROWSER</span>
+  <span class="box">┌─────────────────────────────────────────────────────┐</span>
+  <span class="box">│  React App (Netlify)                                │</span>
+  <span class="box">│  ┌──────────────┐  ┌─────────────────┐  ┌────────┐ │</span>
+  <span class="box">│  │ Setup Form   │  │ Interview List  │  │ Score  │ │</span>
+  <span class="box">│  │ (SetupInterv │  │ (ActiveIntervie │  │ card   │ │</span>
+  <span class="box">│  │  iew.tsx)    │  │  ws.tsx)        │  │ (Trans │ │</span>
+  <span class="box">│  └──────┬───────┘  └────────┬────────┘  │ cript  │ │</span>
+  <span class="box">│         │                   │           │ Assess │ │</span>
+  <span class="box">│         │                   │           │ ment)  │ │</span>
+  <span class="box">└─────────┼───────────────────┼───────────┴────────┴─┘</span>
+            <span class="arrow">│ HTTPS calls           │ HTTPS reads</span>
+  <span class="label">SUPABASE BACKEND</span>
+  <span class="box">┌─────────┴───────────────────┴────────────────────────┐</span>
+  <span class="box">│  PostgreSQL Database                                 │</span>
+  <span class="box">│  interviews table: id, name, email, transcript, etc  │</span>
+  <span class="box">│                                                      │</span>
+  <span class="box">│  Edge Functions (Deno / serverless)                  │</span>
+  <span class="box">│  ┌──────────────────┐  ┌──────────────────────────┐  │</span>
+  <span class="box">│  │ create-recall-bot│  │ openai-realtime-token    │  │</span>
+  <span class="box">│  │ generate-assess  │  │ recall-transcript-webhook│  │</span>
+  <span class="box">│  └────────┬─────────┘  └───────────────────────┬──┘  │</span>
+  <span class="box">└───────────┼────────────────────────────────────┼──────┘</span>
+             <span class="arrow">│ API calls                         │ callbacks</span>
+  <span class="label">EXTERNAL SERVICES</span>
+  <span class="box">┌────────────┴──────────────┐   ┌──────────────┴──────────────┐</span>
+  <span class="box">│  Recall.ai                │   │  OpenAI Realtime API        │</span>
+  <span class="box">│  Bot joins Zoom meeting   │   │  gpt-realtime-2 voice model │</span>
+  <span class="box">│  Displays AgentPage UI    │   │  Speaks + listens to cand.  │</span>
+  <span class="box">└───────────────────────────┘   └─────────────────────────────┘</span>
+  <span class="box">┌──────────────────────────────┐</span>
+  <span class="box">│  Anthropic Claude AI         │</span>
+  <span class="box">│  Reads transcript → scores   │</span>
+  <span class="box">└──────────────────────────────┘</span>
+</div>
+
+<div class="callout">
+  <strong>Key insight:</strong> The recruiter's browser never directly holds API keys for OpenAI or Recall.ai. All secret keys are stored securely in Supabase Edge Functions on the server, which act as a trusted middleman.
+</div>
+
+<!-- ═══════════════════════════ SECTION 4 ═══════════════════════════ -->
+<h2 id="section-4"><span class="section-num">4</span> The Database — Where Data is Stored</h2>
+
+<p>
+  All interview data is stored in a single database table called <code>interviews</code>, hosted on Supabase's PostgreSQL database. Think of it as a very powerful spreadsheet where each row is one interview.
+</p>
+
+<h3>The <code>interviews</code> Table</h3>
+
+<table>
+  <tr>
+    <th>Column Name</th>
+    <th>Type</th>
+    <th>What it stores</th>
+    <th>Example</th>
+  </tr>
+  <tr>
+    <td><code>id</code></td>
+    <td>UUID</td>
+    <td>A unique identifier automatically generated for every interview</td>
+    <td><code>3a9f2c11-...</code></td>
+  </tr>
+  <tr>
+    <td><code>candidate_name</code></td>
+    <td>Text</td>
+    <td>The candidate's full name</td>
+    <td>Jane Doe</td>
+  </tr>
+  <tr>
+    <td><code>candidate_email</code></td>
+    <td>Text</td>
+    <td>The candidate's email address</td>
+    <td>jane@example.com</td>
+  </tr>
+  <tr>
+    <td><code>job_description</code></td>
+    <td>Text</td>
+    <td>The full job description pasted by the recruiter</td>
+    <td>"We are looking for a Senior React developer..."</td>
+  </tr>
+  <tr>
+    <td><code>resume</code></td>
+    <td>Text</td>
+    <td>The candidate's resume text pasted by the recruiter</td>
+    <td>"Jane has 5 years experience in..."</td>
+  </tr>
+  <tr>
+    <td><code>zoom_url</code></td>
+    <td>Text</td>
+    <td>The Zoom (or Meet/Teams) meeting link</td>
+    <td>https://zoom.us/j/123456789</td>
+  </tr>
+  <tr>
+    <td><code>recall_bot_id</code></td>
+    <td>Text (nullable)</td>
+    <td>The ID of the Recall.ai bot that joined the meeting</td>
+    <td><code>bot_abc123</code></td>
+  </tr>
+  <tr>
+    <td><code>status</code></td>
+    <td>Text</td>
+    <td>Where the interview is in its lifecycle</td>
+    <td>Scheduled / In Progress / Completed</td>
+  </tr>
+  <tr>
+    <td><code>transcript</code></td>
+    <td>JSONB</td>
+    <td>Array of all messages spoken during the interview with roles and timestamps</td>
+    <td><code>[{"role":"interviewer","content":"Hello Jane..."}]</code></td>
+  </tr>
+  <tr>
+    <td><code>assessment</code></td>
+    <td>JSONB</td>
+    <td>The Claude AI-generated scorecard with scores, rationale, and recommendation</td>
+    <td><code>{"technicalSkillsMatch": 8, ...}</code></td>
+  </tr>
+  <tr>
+    <td><code>created_at</code></td>
+    <td>Timestamp</td>
+    <td>When the interview was created</td>
+    <td>2026-06-16 10:30:00 UTC</td>
+  </tr>
+</table>
+
+<div class="card amber">
+  <h4>⚠️ What is JSONB?</h4>
+  <p style="margin:0">JSONB is a flexible data type in PostgreSQL that stores structured data as JSON. For example, instead of having 50 separate columns for each transcript message, the entire conversation is stored as one field containing a list of objects. This makes it easy to store data of variable length and complexity.</p>
+</div>
+
+<h3>Security: Row Level Security (RLS)</h3>
+<p>
+  The database uses a security feature called <strong>Row Level Security (RLS)</strong>. This means rules are set on who is allowed to read and write data. In this app, anonymous (not logged in) users are allowed full access — this is intentional because the app is designed as an internal recruiter tool, not a public consumer app. If user accounts were added later, these policies would be tightened.
+</p>
+
+<!-- ═══════════════════════════ SECTION 5 ═══════════════════════════ -->
+<h2 id="section-5"><span class="section-num">5</span> Frontend Pages &amp; Components</h2>
+
+<p>
+  The frontend is a <strong>Single Page Application (SPA)</strong> — meaning the entire app lives in one HTML file and React swaps different views in and out without navigating to a new page. Think of it like a TV with multiple channels: the screen stays the same, but what's shown changes.
+</p>
+
+<h3 id="section-5a">5.1 — App.tsx: The Main Shell</h3>
+<p>
+  <code>App.tsx</code> is the root component — the outermost wrapper that everything else sits inside. It has two jobs:
+</p>
+<ul>
+  <li><strong>Route detection:</strong> If the URL is <code>/agent</code>, it shows the special AI Interviewer screen. Otherwise, it shows the recruiter dashboard.</li>
+  <li><strong>Navigation state:</strong> It tracks which page the recruiter is on (Setup, Interviews, or Transcript/Assessment) and passes instructions to child components.</li>
+</ul>
+
+<div class="card">
+  <h4>Sidebar Navigation</h4>
+  <p style="margin:0">The sidebar on the left has two nav buttons: "Setup Interview" and "Active Interviews". Clicking them changes the <code>page</code> state variable, which controls what is shown in the main content area. The RecruiterAI logo and branding sit at the top of the sidebar.</p>
+</div>
+
+<h3 id="section-5b">5.2 — SetupInterview.tsx: Create a New Interview</h3>
+<p>
+  This is the form page recruiters fill in to create a new interview session. It collects five fields:
+</p>
+<ul>
+  <li><strong>Candidate Name</strong> — who is being interviewed</li>
+  <li><strong>Candidate Email</strong> — for reference</li>
+  <li><strong>Zoom URL</strong> — the meeting link the bot should join</li>
+  <li><strong>Job Description</strong> — pasted text of the role requirements</li>
+  <li><strong>Resume</strong> — pasted text of the candidate's CV</li>
+</ul>
+<p>
+  When the recruiter clicks <strong>"Start Interview"</strong>, two things happen in sequence:
+</p>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="num">1</div>
+    <div class="content">
+      <strong>Save to Supabase</strong>
+      <span>The form data is inserted as a new row in the <code>interviews</code> table with status "Scheduled".</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">2</div>
+    <div class="content">
+      <strong>Call the Edge Function</strong>
+      <span>The app calls <code>create-recall-bot</code> with the interview ID and Zoom URL, which dispatches a bot into the meeting.</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">3</div>
+    <div class="content">
+      <strong>Show Result</strong>
+      <span>A green success or red error message appears confirming whether the bot was created successfully.</span>
+    </div>
+  </div>
+</div>
+
+<h3 id="section-5c">5.3 — ActiveInterviews.tsx: View All Interviews</h3>
+<p>
+  This page shows a table of every interview that has been created. Each row shows the candidate's name, email, date, status badge (Scheduled / In Progress / Completed), and how many transcript messages have been captured. Clicking any row opens the Transcript &amp; Assessment view for that interview.
+</p>
+<p>
+  The data is fetched directly from Supabase every time the page loads, and there is a Refresh button to reload it manually. The interviews are sorted newest first.
+</p>
+
+<h3 id="section-5d">5.4 — TranscriptAssessment.tsx: Review &amp; Assess</h3>
+<p>
+  This is the most information-rich page. It shows:
+</p>
+<ul>
+  <li><strong>The full interview transcript</strong> — displayed as a chat bubble layout, with AI messages on the left and candidate messages on the right. Each bubble shows the timestamp.</li>
+  <li><strong>Generate Assessment button</strong> — calls the <code>generate-assessment</code> Edge Function which uses Claude AI to analyse the transcript.</li>
+  <li><strong>The AI scorecard</strong> — once generated, shows:
+    <ul>
+      <li>An overall recommendation (Strong Yes / Yes / Maybe / No)</li>
+      <li>Score bars for Technical Skills, Communication, and Depth of Experience</li>
+      <li>Detailed score cards with a score out of 10, rationale, and a supporting quote from the transcript</li>
+      <li>Culture fit indicators (bullet list of positive observations)</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="callout tip">
+  <strong>Tip:</strong> The assessment can be regenerated at any time by clicking the Regenerate button — useful if the transcript gets updated or you want a fresh perspective.
+</div>
+
+<h3 id="section-5e">5.5 — AgentPage.tsx: The AI Interviewer Screen</h3>
+<p>
+  This page is <em>not</em> seen by recruiters — it is the screen that the Recall.ai bot displays inside the Zoom meeting to the candidate. It is a full 1280×720px dark-themed page with:
+</p>
+<ul>
+  <li>An animated robot avatar with a pulsing ring that changes colour based on status</li>
+  <li>A status pill showing "Connecting", "Listening", or "AI Interviewer speaking..."</li>
+  <li>A preview of the last 3 lines of transcript as the conversation unfolds</li>
+</ul>
+<p>
+  When this page loads, it reads the <code>interviewId</code> from the URL, fetches the interview data from Supabase, connects to OpenAI's Realtime API over WebRTC, and immediately starts the conversation. The AI speaks first, greeting the candidate by name.
+</p>
+
+<div class="card purple">
+  <h4>🎙️ How the Voice Works (Simplified)</h4>
+  <p style="margin:0">WebRTC is a browser technology that enables live audio streams. The AgentPage opens a peer-to-peer connection with OpenAI's servers. The bot's microphone audio goes to OpenAI, and OpenAI's voice response comes back as audio and is played through the bot's virtual speaker — which the candidate hears in the Zoom call.</p>
+</div>
+
+<!-- ═══════════════════════════ SECTION 6 ═══════════════════════════ -->
+<div class="page-break"></div>
+<h2 id="section-6"><span class="section-num">6</span> Backend Edge Functions</h2>
+
+<p>
+  Edge Functions are small programs that run in the cloud — not in the user's browser and not on a traditional server. They run on Supabase's infrastructure using the Deno runtime. They are perfect for tasks that need secret API keys, since those keys never leave the server.
+</p>
+
+<h3 id="section-6a">6.1 — openai-realtime-token</h3>
+
+<div class="card">
+  <strong>URL:</strong> <code>POST /functions/v1/openai-realtime-token</code><br/>
+  <strong>Purpose:</strong> Issues a short-lived ephemeral key that allows the browser to connect to OpenAI's Realtime API without exposing the main OpenAI API key.
+</div>
+
+<p><strong>Why is this needed?</strong> The real OpenAI API key must never be placed in the browser — anyone visiting the page could extract it and use it to run up charges. This Edge Function holds the real key securely and exchanges it for a temporary "one-use" token that the browser can safely use for one session.</p>
+
+<p><strong>What it does:</strong></p>
+<ol>
+  <li>Reads <code>OPENAI_API_KEY</code> from secure environment variables.</li>
+  <li>Calls <code>https://api.openai.com/v1/realtime/client_secrets</code> to generate an ephemeral key.</li>
+  <li>Returns the token to the browser.</li>
+</ol>
+
+<pre><code>// Session configuration sent to OpenAI
+{
+  session: {
+    type: "realtime",
+    model: "gpt-realtime-2",
+    audio: {
+      output: { voice: "marin" }
+    }
+  }
+}</code></pre>
+
+<h3 id="section-6b">6.2 — create-recall-bot</h3>
+
+<div class="card">
+  <strong>URL:</strong> <code>POST /functions/v1/create-recall-bot</code><br/>
+  <strong>Purpose:</strong> Sends a Recall.ai bot into the specified video meeting, configured to display the AI Interviewer screen and conduct the interview.
+</div>
+
+<p><strong>What it does:</strong></p>
+<ol>
+  <li>Receives <code>interviewId</code> and <code>zoomUrl</code> from the frontend.</li>
+  <li>Constructs the Agent Page URL: <code>https://your-app.netlify.app/agent.html?interviewId=XXX</code></li>
+  <li>Calls Recall.ai's API to create a bot that joins the meeting and shows that URL as its camera feed.</li>
+  <li>Updates the interview record in Supabase with the bot's ID and sets status to "In Progress".</li>
+</ol>
+
+<p>The Recall.ai bot is configured with:</p>
+<ul>
+  <li><strong>output_media.camera</strong> — displays the AgentPage HTML as a virtual webcam</li>
+  <li><strong>recording_config</strong> — enables transcript capture with speaker diarization (distinguishing who is talking)</li>
+  <li><strong>variant</strong> — uses a high-performance 4-core browser engine</li>
+</ul>
+
+<h3 id="section-6c">6.3 — generate-assessment</h3>
+
+<div class="card">
+  <strong>URL:</strong> <code>POST /functions/v1/generate-assessment</code><br/>
+  <strong>Purpose:</strong> Uses Claude AI (claude-opus-4-5) to analyse the interview transcript and produce a structured hiring scorecard.
+</div>
+
+<p><strong>What it does:</strong></p>
+<ol>
+  <li>Receives <code>interviewId</code>.</li>
+  <li>Fetches the interview (including transcript and job description) from Supabase.</li>
+  <li>Formats the transcript as readable text and sends it to Claude with a detailed prompt.</li>
+  <li>Parses Claude's JSON response into a structured assessment object.</li>
+  <li>Saves the assessment back to the interview record in Supabase.</li>
+</ol>
+
+<p>The prompt instructs Claude to return a JSON object with these exact fields:</p>
+
+<pre><code>{
+  "technicalSkillsMatch":    7,          // Score 1–10
+  "technicalSkillsRationale": "...",     // Explanation
+  "technicalSkillsQuote":     "...",     // Exact quote from transcript
+  "communicationClarity":     8,
+  "communicationRationale":   "...",
+  "communicationQuote":       "...",
+  "depthOfExperience":        6,
+  "depthRationale":           "...",
+  "depthQuote":               "...",
+  "cultureFitIndicators":     ["...", "...", "..."],
+  "overallRecommendation":    "Strong Yes",  // or Yes / Maybe / No
+  "recommendationSummary":    "..."
+}</code></pre>
+
+<h3 id="section-6d">6.4 — recall-transcript-webhook</h3>
+
+<div class="card">
+  <strong>URL:</strong> <code>POST /functions/v1/recall-transcript-webhook</code> (also handles <code>/call-end</code> sub-path)<br/>
+  <strong>Purpose:</strong> Receives incoming transcript chunks and call-end notifications from Recall.ai as the interview is happening.
+</div>
+
+<p>This Edge Function is a <strong>webhook</strong> — meaning it is a URL that Recall.ai calls, rather than us calling it. It handles two kinds of events:</p>
+
+<ul>
+  <li><strong>Transcript chunk:</strong> When a participant speaks, Recall.ai sends the words and who said them. The function identifies the speaker (interviewer or candidate), appends the new message to the transcript array in Supabase, and saves it.</li>
+  <li><strong>Call end (<code>/call-end</code>):</strong> When the meeting ends, Recall.ai calls this endpoint. The function updates the interview status to "Completed".</li>
+</ul>
+
+<div class="callout warn">
+  <strong>Note on speaker identification:</strong> The function uses heuristics to determine whether a speaker is the interviewer or the candidate — checking if the speaker name contains "interview" or if they are identified as participant "0". This works for the common case but may need refinement for edge cases.
+</div>
+
+<!-- ═══════════════════════════ SECTION 7 ═══════════════════════════ -->
+<h2 id="section-7"><span class="section-num">7</span> The AI Voice Interview — Step by Step</h2>
+
+<p>
+  The most complex part of the system is how the live voice conversation actually works. Here is every step in the exact order it happens during a real interview:
+</p>
+
+<div class="flow">
+  <div class="flow-step">
+    <div class="num">1</div>
+    <div class="content">
+      <strong>Recall.ai bot joins the Zoom meeting</strong>
+      <span>The bot appears in the meeting as a participant named "AI Interviewer". Its camera shows the AgentPage HTML rendered in a headless browser (a browser with no visible window).</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">2</div>
+    <div class="content">
+      <strong>AgentPage loads inside the bot's browser</strong>
+      <span>The page reads <code>?interviewId=XXX</code> from the URL and fetches the interview data (candidate name, resume, job description) from Supabase.</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">3</div>
+    <div class="content">
+      <strong>Ephemeral token is fetched</strong>
+      <span>The page calls the <code>openai-realtime-token</code> Edge Function to get a secure, short-lived key. This key will expire after the session and cannot be reused.</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">4</div>
+    <div class="content">
+      <strong>WebRTC connection established</strong>
+      <span>An RTCPeerConnection is created. The bot's microphone audio track is added to the connection. An SDP offer (a technical description of the audio session) is sent to OpenAI's <code>/v1/realtime/calls</code> endpoint, which responds with the matching answer.</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">5</div>
+    <div class="content">
+      <strong>Session is configured via data channel</strong>
+      <span>A data channel named <code>oai-events</code> is opened. The app sends a <code>session.update</code> event with the system prompt (including the resume and job description), enables candidate speech transcription via <code>audio.input.transcription</code>, and configures voice activity detection (VAD).</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">6</div>
+    <div class="content">
+      <strong>AI speaks first</strong>
+      <span>A <code>response.create</code> event is sent immediately after the session update, instructing the AI to greet the candidate by name and ask its first question.</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">7</div>
+    <div class="content">
+      <strong>Conversation continues automatically</strong>
+      <span>Server-side VAD (Voice Activity Detection) handles turn-taking. When the candidate stops speaking for 700ms, OpenAI processes their input and the AI formulates and speaks its next response. No manual interruption handling is needed.</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">8</div>
+    <div class="content">
+      <strong>Transcript is saved in real time</strong>
+      <span>Two event types populate the transcript: <code>response.audio_transcript.done</code> (interviewer's words) and <code>conversation.item.input_audio_transcription.completed</code> (candidate's words). Each is appended to the transcript array and saved to Supabase with a 1.5 second debounce (to avoid excessive database writes).</span>
+    </div>
+  </div>
+  <div class="flow-connector"></div>
+  <div class="flow-step">
+    <div class="num">9</div>
+    <div class="content">
+      <strong>Interview ends</strong>
+      <span>When the meeting ends, Recall.ai sends a webhook to <code>/recall-transcript-webhook/call-end</code>, which marks the interview as "Completed" in Supabase.</span>
+    </div>
+  </div>
+</div>
+
+<h3>The OpenAI Realtime API — Key Technical Details</h3>
+
+<p>The app uses <strong>gpt-realtime-2</strong>, which is OpenAI's latest GA (Generally Available) voice model. This model uses a different session configuration schema to older models like <code>gpt-4o-realtime</code>:</p>
+
+<table>
+  <tr>
+    <th>Setting</th>
+    <th>Old model schema (gpt-4o-realtime)</th>
+    <th>New model schema (gpt-realtime-2) — used here</th>
+  </tr>
+  <tr>
+    <td>Transcription config</td>
+    <td><code>input_audio_transcription: { model: "whisper-1" }</code></td>
+    <td><code>audio.input.transcription: { model: "whisper-1" }</code></td>
+  </tr>
+  <tr>
+    <td>Voice activity detection</td>
+    <td><code>turn_detection: { type: "server_vad" }</code></td>
+    <td><code>audio.input.turn_detection: { type: "server_vad" }</code></td>
+  </tr>
+  <tr>
+    <td>Output voice</td>
+    <td><code>voice: "alloy"</code> at session level</td>
+    <td><code>audio.output.voice: "marin"</code></td>
+  </tr>
+  <tr>
+    <td>SDP endpoint</td>
+    <td><code>POST /v1/realtime?model=...</code></td>
+    <td><code>POST /v1/realtime/calls</code></td>
+  </tr>
+</table>
+
+<!-- ═══════════════════════════ SECTION 8 ═══════════════════════════ -->
+<h2 id="section-8"><span class="section-num">8</span> Deployment &amp; Configuration</h2>
+
+<h3>Frontend — Netlify</h3>
+<p>
+  The React app is deployed to Netlify, a hosting service that serves static files. The build process runs <code>npm run build</code> which uses Vite to compile all TypeScript/React code into plain HTML, CSS, and JavaScript files in a <code>dist/</code> folder.
+</p>
+
+<div class="card">
+  <h4>netlify.toml — The Deployment Configuration File</h4>
+  <pre style="margin:8px 0 0"><code>[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  VITE_SUPABASE_URL = "https://bvckybdvplsjbjhspbyp.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGci..."
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200</code></pre>
+  <p style="margin-top:10px; margin-bottom:0; font-size:13px; color:#64748b;">The <code>[[redirects]]</code> rule is critical — it tells Netlify to always serve <code>index.html</code> regardless of the URL path, which is required for Single Page Applications.</p>
+</div>
+
+<h3>Environment Variables</h3>
+
+<table>
+  <tr>
+    <th>Variable</th>
+    <th>Where it lives</th>
+    <th>Purpose</th>
+  </tr>
+  <tr>
+    <td><code>VITE_SUPABASE_URL</code></td>
+    <td>Netlify build environment</td>
+    <td>The URL of the Supabase project (public, safe to expose)</td>
+  </tr>
+  <tr>
+    <td><code>VITE_SUPABASE_ANON_KEY</code></td>
+    <td>Netlify build environment</td>
+    <td>The anonymous key for reading/writing data (public, safe with RLS)</td>
+  </tr>
+  <tr>
+    <td><code>OPENAI_API_KEY</code></td>
+    <td>Supabase Edge Function secrets</td>
+    <td>The real OpenAI API key — NEVER in the browser</td>
+  </tr>
+  <tr>
+    <td><code>ANTHROPIC_API_KEY</code></td>
+    <td>Supabase Edge Function secrets</td>
+    <td>The Anthropic (Claude) API key — NEVER in the browser</td>
+  </tr>
+  <tr>
+    <td><code>RECALL_API_KEY</code></td>
+    <td>Supabase Edge Function secrets</td>
+    <td>The Recall.ai API key for sending bots to meetings</td>
+  </tr>
+  <tr>
+    <td><code>APP_URL</code></td>
+    <td>Supabase Edge Function secrets</td>
+    <td>The public Netlify URL, used to build the agent page link for the bot</td>
+  </tr>
+  <tr>
+    <td><code>SUPABASE_SERVICE_ROLE_KEY</code></td>
+    <td>Supabase Edge Function secrets (auto-injected)</td>
+    <td>A privileged key for Edge Functions to bypass RLS when writing data</td>
+  </tr>
+</table>
+
+<h3>The agent.html File</h3>
+<p>
+  There is a special file at <code>public/agent.html</code> that is a standalone HTML page (not part of the React app). It is served directly by Netlify and loaded by the Recall.ai bot. The Vite build process copies it to <code>dist/agent.html</code> and injects the Supabase URL and key into the file's JavaScript at build time.
+</p>
+
+<!-- ═══════════════════════════ SECTION 9 ═══════════════════════════ -->
+<h2 id="section-9"><span class="section-num">9</span> Key Bugs Fixed During Development</h2>
+
+<p>Several important issues were diagnosed and resolved during development. Understanding these helps future developers avoid the same pitfalls.</p>
+
+<h3>Bug 1 — Candidate Transcript Not Being Captured</h3>
+<div class="card amber">
+  <h4>Symptom</h4>
+  <p>Only the AI interviewer's side of the conversation appeared in the transcript. The candidate's spoken words were never saved.</p>
+  <h4>Root Cause</h4>
+  <p>The <code>session.update</code> event sent to OpenAI used the old <code>gpt-4o-realtime</code> schema. The old schema places <code>input_audio_transcription</code> at the top level of the session object. The new <code>gpt-realtime-2</code> GA API nests this setting inside <code>audio.input.transcription</code>. Sending the wrong structure was silently ignored, so transcription was never enabled for the candidate's audio.</p>
+  <h4>Fix</h4>
+  <pre><code>// WRONG (old schema):
+session: { input_audio_transcription: { model: "whisper-1" } }
+
+// CORRECT (gpt-realtime-2):
+session: {
+  type: "realtime",
+  audio: {
+    input: {
+      transcription: { model: "whisper-1" },
+      turn_detection: { type: "server_vad", ... }
+    }
+  }
+}</code></pre>
+</div>
+
+<h3>Bug 2 — Blank White Page on Netlify</h3>
+<div class="card amber">
+  <h4>Symptom</h4>
+  <p>After deploying to Netlify, the site showed a blank white page. The browser console showed: <code>Uncaught Error: supabaseUrl is required</code>.</p>
+  <h4>Root Cause</h4>
+  <p>Two separate issues: (1) There was no <code>netlify.toml</code> at the project root providing the environment variables at build time. Netlify did not know about <code>VITE_SUPABASE_URL</code> so Vite compiled the app with empty strings. (2) There was no <code>_redirects</code> rule, so refreshing any page returned a 404.</p>
+  <h4>Fix</h4>
+  <p>Created a <code>netlify.toml</code> at the project root with <code>[build.environment]</code> containing both Supabase variables, and a <code>[[redirects]]</code> rule pointing <code>/*</code> to <code>/index.html</code>.</p>
+</div>
+
+<h3>Bug 3 — SDP Negotiation Failure with gpt-realtime-2</h3>
+<div class="card amber">
+  <h4>Symptom</h4>
+  <p>The WebRTC connection to OpenAI failed with an SDP error.</p>
+  <h4>Root Cause</h4>
+  <p>The old ephemeral-key WebRTC path sent the SDP offer directly to <code>https://api.openai.com/v1/realtime?model=...</code> with <code>Content-Type: application/sdp</code>. The new <code>gpt-realtime-2</code> GA API requires posting to <code>/v1/realtime/calls</code> with a short-lived ephemeral key as the Bearer token.</p>
+  <h4>Fix</h4>
+  <p>Updated the edge function to call <code>/v1/realtime/client_secrets</code> for token generation, and updated <code>agent.html</code> to post the SDP to <code>/v1/realtime/calls</code>.</p>
+</div>
+
+<!-- ═══════════════════════════ SECTION 10 ═══════════════════════════ -->
+<div class="page-break"></div>
+<h2 id="section-10"><span class="section-num">10</span> Glossary for Non-Technical Readers</h2>
+
+<table>
+  <tr>
+    <th>Term</th>
+    <th>Plain English Explanation</th>
+  </tr>
+  <tr>
+    <td><strong>API</strong></td>
+    <td>Application Programming Interface — a way for one software program to talk to another. Like a waiter who takes your order to the kitchen and brings back food.</td>
+  </tr>
+  <tr>
+    <td><strong>React</strong></td>
+    <td>A tool for building web pages that update dynamically without refreshing, like a news ticker that changes without reloading the whole page.</td>
+  </tr>
+  <tr>
+    <td><strong>TypeScript</strong></td>
+    <td>A stricter version of JavaScript (the language that makes websites interactive) that catches mistakes before the code runs.</td>
+  </tr>
+  <tr>
+    <td><strong>Component</strong></td>
+    <td>A reusable building block of a web page — like a LEGO brick. A button, a form, or a whole page section can each be a component.</td>
+  </tr>
+  <tr>
+    <td><strong>Database / Supabase</strong></td>
+    <td>A structured place to store and retrieve data — like a very powerful, searchable spreadsheet hosted in the cloud.</td>
+  </tr>
+  <tr>
+    <td><strong>Edge Function / Serverless</strong></td>
+    <td>A small program that runs in the cloud only when needed, rather than on a permanently running server. Like a vending machine — available 24/7 but only uses power when someone uses it.</td>
+  </tr>
+  <tr>
+    <td><strong>WebRTC</strong></td>
+    <td>A browser technology that enables direct real-time audio/video communication — it's what makes video calls work in a browser without installing software.</td>
+  </tr>
+  <tr>
+    <td><strong>SDP (Session Description Protocol)</strong></td>
+    <td>A technical "hello, here is what audio formats I support and my network details" message that two computers exchange to set up a voice call.</td>
+  </tr>
+  <tr>
+    <td><strong>Webhook</strong></td>
+    <td>A URL that receives notifications from external services. Instead of constantly asking "are there any updates?", the service sends a message to your webhook when something happens — like a doorbell vs. constantly knocking.</td>
+  </tr>
+  <tr>
+    <td><strong>VAD (Voice Activity Detection)</strong></td>
+    <td>Technology that automatically detects when someone is speaking vs. silent, used to know when the candidate has finished talking so the AI can respond.</td>
+  </tr>
+  <tr>
+    <td><strong>Ephemeral token / key</strong></td>
+    <td>A temporary password that expires quickly (usually after one use or a short time). Used so the browser can connect to an API without storing a permanent secret key.</td>
+  </tr>
+  <tr>
+    <td><strong>JSONB</strong></td>
+    <td>A database column type that stores flexible, structured data (like a list of messages) rather than simple text or numbers.</td>
+  </tr>
+  <tr>
+    <td><strong>RLS (Row Level Security)</strong></td>
+    <td>Database security rules that control exactly who can see or change which rows of data.</td>
+  </tr>
+  <tr>
+    <td><strong>SPA (Single Page Application)</strong></td>
+    <td>A website that loads once and then swaps content dynamically without full page reloads — like a phone app that shows different screens without restarting.</td>
+  </tr>
+  <tr>
+    <td><strong>Netlify</strong></td>
+    <td>A service that hosts websites on the internet. You give it your code files and it makes them publicly accessible via a URL.</td>
+  </tr>
+  <tr>
+    <td><strong>Deno</strong></td>
+    <td>A runtime environment for running JavaScript/TypeScript programs on a server (similar to how a browser runs JavaScript, but for the backend).</td>
+  </tr>
+  <tr>
+    <td><strong>Recall.ai</strong></td>
+    <td>A service that provides programmable bots that can join video calls (Zoom, Google Meet, Teams) and display custom content or capture audio/video.</td>
+  </tr>
+  <tr>
+    <td><strong>Claude AI / Anthropic</strong></td>
+    <td>An artificial intelligence assistant that can understand and generate text — used here to read interview transcripts and write evaluation reports.</td>
+  </tr>
+  <tr>
+    <td><strong>OpenAI Realtime API</strong></td>
+    <td>An OpenAI service that enables real-time two-way voice conversations with an AI model — similar to talking to a person, but the "person" is an AI.</td>
+  </tr>
+  <tr>
+    <td><strong>Deployment</strong></td>
+    <td>The process of taking code from a developer's computer and making it live on the internet for people to use.</td>
+  </tr>
+  <tr>
+    <td><strong>Build</strong></td>
+    <td>The process of compiling and packaging source code into optimised files that browsers can efficiently load and run.</td>
+  </tr>
+</table>
+
+<hr/>
+
+<div style="text-align:center; padding: 24px 0; color: #94a3b8; font-size: 13px; font-family: 'Arial', sans-serif;">
+  RecruiterAI Documentation &nbsp;·&nbsp; Version 1.0 &nbsp;·&nbsp; June 2026<br/>
+  Built with React · TypeScript · Supabase · OpenAI Realtime API · Claude AI · Recall.ai · Netlify
+</div>
+
+</body>
+</html>
