@@ -60,7 +60,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const agentUrl = `${supabaseUrl}/functions/v1/agent-page?interviewId=${encodeURIComponent(interviewId)}`;
+    // Use the Netlify-hosted static agent.html when called from the dashboard
+    // (browser sends Origin = Netlify domain). Netlify serves static files with the
+    // correct Content-Type, which Recall.ai's Chrome requires to render HTML.
+    // Fall back to the Supabase edge function only if no usable origin is available.
+    const origin = req.headers.get("origin") || "";
+    const agentUrl = (origin && !origin.includes("supabase.co"))
+      ? `${origin}/agent.html?interviewId=${encodeURIComponent(interviewId)}`
+      : `${supabaseUrl}/functions/v1/agent-page?interviewId=${encodeURIComponent(interviewId)}`;
 
     console.log("Creating Recall bot with agent URL:", agentUrl);
 
