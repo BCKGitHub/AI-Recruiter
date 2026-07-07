@@ -135,6 +135,7 @@ export default function SetupInterview({ onInterviewCreated }: Props) {
           await supabase.from("interviews").update({ status: "Failed" }).eq("id", ivId);
           stopPolling();
         } else if (status === "call_ended") {
+          await supabase.from("interviews").update({ status: "Completed" }).eq("id", ivId);
           stopPolling();
         }
         // "waiting_for_host" keeps polling — user needs to admit the bot

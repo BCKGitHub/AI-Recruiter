@@ -88,6 +88,18 @@ Deno.serve(async (req: Request) => {
             },
           },
         },
+        recording_config: {
+          transcript: {
+            enable_realtime: true,
+            webhook: {
+              url: `${supabaseUrl}/functions/v1/recall-transcript-webhook?interviewId=${encodeURIComponent(interviewId)}`,
+            },
+          },
+        },
+        webhook: {
+          url: `${supabaseUrl}/functions/v1/recall-transcript-webhook/call-end`,
+          events: ["call.end"],
+        },
       }),
     });
 

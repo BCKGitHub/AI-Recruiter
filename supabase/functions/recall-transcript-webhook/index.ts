@@ -81,10 +81,26 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const { data: interview, error: fetchError } = await supabase
+        .from("interviews")
+        .select("id")
+        .eq("recall_bot_id", botId)
+        .maybeSingle();
+
+      if (fetchError || !interview) {
+        console.error("Interview not found for botId:", botId);
+        return new Response(
+          JSON.stringify({ error: "Interview not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const interviewId = interview.id;
+
       const { error } = await supabase
         .from("interviews")
         .update({ status: "Completed" })
-        .eq("recall_bot_id", botId);
+        .eq("id", interviewId);
 
       if (error) {
         console.error("Failed to mark interview completed:", error);
@@ -92,6 +108,20 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({ error: error.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      // Auto-trigger assessment generation
+      const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+      if (anthropicApiKey) {
+        console.log("Auto-generating assessment for interview:", interviewId);
+        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-assessment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ interviewId }),
+        }).catch((err) => console.error("Assessment generation failed:", err));
       }
 
       return new Response(
